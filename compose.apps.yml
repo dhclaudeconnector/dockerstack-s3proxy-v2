@@ -1,0 +1,66 @@
+# ================================================================
+#  compose.apps.yml — Application Layer
+#  Runs S3 Proxy from ./services/s3proxy
+#
+#  Subdomain: ${PROJECT_NAME}.${DOMAIN}
+#
+#  Minimal required env:
+#    APP_PORT   — Port app listens on inside container
+#    S3PROXY_API_KEY, S3PROXY_FIREBASE_RTDB_URL, S3PROXY_FIREBASE_DB_SECRET
+#    PROJECT_NAME, DOMAIN, CADDY_AUTH_USER, CADDY_AUTH_HASH
+# ================================================================
+
+services:
+  app:
+    image: "${PROJECT_NAME:-myapp}-s3proxy:local"
+    build:
+      context: ./services/s3proxy
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: "${NODE_ENV:-production}"
+      PORT: "${APP_PORT:-3000}"
+      PROXY_API_KEY: "${S3PROXY_API_KEY:-}"
+      FIREBASE_RTDB_URL: "${S3PROXY_FIREBASE_RTDB_URL:-}"
+      FIREBASE_DB_SECRET: "${S3PROXY_FIREBASE_DB_SECRET:-}"
+      QUOTA_THRESHOLD: "${S3PROXY_QUOTA_THRESHOLD:-0.90}"
+      QUOTA_POLL_INTERVAL_MS: "${S3PROXY_QUOTA_POLL_INTERVAL_MS:-300000}"
+      QUOTA_DRIFT_THRESHOLD_RATIO: "${S3PROXY_QUOTA_DRIFT_THRESHOLD_RATIO:-0.05}"
+      RECONCILE_INTERVAL_MS: "${S3PROXY_RECONCILE_INTERVAL_MS:-900000}"
+      INVENTORY_SCAN_PAGE_SIZE: "${S3PROXY_INVENTORY_SCAN_PAGE_SIZE:-500}"
+      PENDING_SYNC_BATCH_SIZE: "${S3PROXY_PENDING_SYNC_BATCH_SIZE:-200}"
+      RTDB_SYNC_BATCH_SIZE: "${S3PROXY_RTDB_SYNC_BATCH_SIZE:-400}"
+      DRAIN_TIMEOUT_MS: "${S3PROXY_DRAIN_TIMEOUT_MS:-30000}"
+      LOG_LEVEL: "${S3PROXY_LOG_LEVEL:-info}"
+      WEBHOOK_ALERT_URL: "${S3PROXY_WEBHOOK_ALERT_URL:-}"
+      INSTANCE_ID: "${S3PROXY_INSTANCE_ID:-}"
+      SQLITE_PATH: "${S3PROXY_SQLITE_PATH:-./data/routes.db}"
+      LRU_MAX: "${S3PROXY_LRU_MAX:-10000}"
+      LRU_TTL_MS: "${S3PROXY_LRU_TTL_MS:-300000}"
+    ports:
+      - "127.0.0.1:${APP_HOST_PORT:-3000}:${APP_PORT:-3000}"
+    volumes:
+      - ${DOCKER_VOLUMES_ROOT:-./.docker-volumes}/s3proxy/data:/app/data
+    labels:
+      # Public HTTP sites behind Cloudflare Tunnel.
+      - "caddy=http://${PROJECT_NAME}.${DOMAIN}, http://main.${DOMAIN}, http://${DOMAIN}, http://${PROJECT_NAME}.${TAILSCALE_TAILNET_DOMAIN}"
+      - "caddy.reverse_proxy={{upstreams ${APP_PORT:-3000}}}"
+      - "caddy.basic_auth=/*"
+      - "caddy.basic_auth.${CADDY_AUTH_USER:-admin}=${CADDY_AUTH_HASH}"
+      # Internal HTTPS site for Tailscale / trusted LAN access.
+      - "caddy_1=https://${PROJECT_NAME:-myapp}.${TAILSCALE_TAILNET_DOMAIN:-tailnet.local}"
+      - "caddy_1.tls=internal"
+      - "caddy_1.reverse_proxy={{upstreams ${APP_PORT:-3000}}}"
+      - "caddy_1.basic_auth=/*"
+      - "caddy_1.basic_auth.${CADDY_AUTH_USER:-admin}=${CADDY_AUTH_HASH}"
+    networks: [app_net]
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - "CMD"
+        - "sh"
+        - "-c"
+        - "wget -qO- http://localhost:${APP_PORT:-3000}${HEALTH_PATH:-/health} || exit 1"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
