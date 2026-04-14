@@ -194,6 +194,11 @@ function getPayloadStream(request) {
   if (typeof request.body === 'string') {
     return Readable.from(Buffer.from(request.body))
   }
+  // If another parser already consumed the stream (for example JSON),
+  // fall back to serializing parsed content instead of sending an empty body.
+  if (request.body && typeof request.body === 'object') {
+    return Readable.from(Buffer.from(JSON.stringify(request.body)))
+  }
   return request.raw
 }
 
@@ -564,6 +569,16 @@ export default async function s3Routes(fastify, _opts) {
   })
 
   const authHook = { preHandler: [fastify.authenticate] }
+
+  // S3 expects raw request payload bytes for signing/integrity semantics.
+  // Disable typed parsers that may consume/transform bodies before proxying.
+  for (const parser of ['application/json', 'application/*+json', 'text/plain']) {
+    try {
+      fastify.removeContentTypeParser(parser)
+    } catch {
+      // parser may not exist in current encapsulation context.
+    }
+  }
 
   try {
     fastify.addContentTypeParser('*', (request, payload, done) => done(null, payload))

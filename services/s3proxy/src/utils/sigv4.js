@@ -200,6 +200,9 @@ export async function resignRequest({ account, method, path, query = {}, headers
     region:  account.region || 'auto',
     service: 's3',
     sha256:  Sha256,
+    // S3 canonical URI must not be double-escaped. We already provide
+    // an encoded request path for upstream.
+    uriEscapePath: false,
   })
 
   const signed = await signer.sign(httpRequest)
