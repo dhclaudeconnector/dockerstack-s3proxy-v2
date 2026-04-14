@@ -38,6 +38,40 @@
 @account02_quota_bytes = 100
 @account02_used_bytes = 1
 
+
+@new_account_id = phuchieuongtrieu-project
+@new_account_access_key_id = 288a1fecda30814dad89ed96f23724f6
+@new_account_secret_access_key = 49c41db12495cde2cb157104046de327624c0b63858410d53ca65bbe11404a80
+@new_account_endpoint = https://vhujtekuccunbiefuaql.supabase.co/storage/v1/s3
+@new_account_region = ap-southeast-1
+@new_account_bucket = phuchieuongtrieu-bucket
+@new_account_quota_bytes = 1000000000
+@new_account_used_bytes = 1
+###
+# 03. Import new one backend accounts
+# Expected:
+# - HTTP 200
+# - JSON imported = 2
+# - JSON rtdbSynced = true
+# - Response accounts do NOT expose secretAccessKey
+POST {{base_url}}/admin/accounts/import
+Content-Type: application/json
+x-api-key: {{s3proxy_api_key}}
+
+{
+  "accounts": {
+    "{{new_account_id}}": {
+      "accessKeyId": "{{new_account_access_key_id}}",
+      "secretAccessKey": "{{new_account_secret_access_key}}",
+      "endpoint": "{{new_account_endpoint}}",
+      "region": "{{new_account_region}}",
+      "bucket": "{{new_account_bucket}}",
+      "quotaBytes": {{new_account_quota_bytes}},
+      "usedBytes": {{new_account_used_bytes}},
+      "active": true
+    }
+  }
+}
 ###
 # 03. Import two backend accounts
 # Expected:

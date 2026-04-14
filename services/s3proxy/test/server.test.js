@@ -417,6 +417,30 @@ async function main() {
     }
 
     try {
+      const presignedRes = await fastify.inject({
+        method: 'GET',
+        url: '/mybucket/path/to/file.txt?X-Amz-Credential=test%2F20260414%2Fap-southeast-1%2Fs3%2Faws4_request&X-Amz-Algorithm=AWS4-HMAC-SHA256',
+      })
+      assert(presignedRes.statusCode === 200, `presigned status=${presignedRes.statusCode}`)
+      assert(presignedRes.payload === 'hello world', `presigned payload=${presignedRes.payload}`)
+      ok('Pre-signed query X-Amz-Credential hop le -> 200')
+    } catch (err) {
+      fail('Pre-signed query X-Amz-Credential', err)
+    }
+
+    try {
+      const presignedLowercaseRes = await fastify.inject({
+        method: 'GET',
+        url: '/mybucket/path/to/file.txt?x-amz-credential=test%2F20260414%2Fap-southeast-1%2Fs3%2Faws4_request&x-amz-algorithm=AWS4-HMAC-SHA256',
+      })
+      assert(presignedLowercaseRes.statusCode === 200, `presigned lowercase status=${presignedLowercaseRes.statusCode}`)
+      assert(presignedLowercaseRes.payload === 'hello world', `presigned lowercase payload=${presignedLowercaseRes.payload}`)
+      ok('Pre-signed query x-amz-credential (lowercase) -> 200')
+    } catch (err) {
+      fail('Pre-signed query x-amz-credential lowercase', err)
+    }
+
+    try {
       const healthRes = await fastify.inject({ method: 'GET', url: '/health' })
       const health = healthRes.json()
       assert(healthRes.statusCode === 200, `health status=${healthRes.statusCode}`)

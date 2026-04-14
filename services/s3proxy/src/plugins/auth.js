@@ -3,10 +3,11 @@
  * Fastify plugin: validate x-api-key header on all S3 routes.
  * Returns 403 XML on mismatch.
  *
- * Supports 3 formats:
+ * Supports 4 formats:
  *   1. x-api-key: <key>
  *   2. Authorization: Bearer <key>
  *   3. Authorization: AWS4-HMAC-SHA256 Credential=<key>/...  (PocketBase, AWS SDK)
+ *   4. Query string: X-Amz-Credential=<key>/... (pre-signed URL)
  */
 
 import fp from 'fastify-plugin'
@@ -19,17 +20,32 @@ function extractApiKey(request) {
   if (xApiKey) return xApiKey.trim()
 
   const authHeader = request.headers['authorization']
-  if (!authHeader) return null
+  if (authHeader) {
+    // Format 2: Bearer token
+    if (authHeader.toLowerCase().startsWith('bearer ')) {
+      return authHeader.slice(7).trim()
+    }
 
-  // Format 2: Bearer token
-  if (authHeader.toLowerCase().startsWith('bearer ')) {
-    return authHeader.slice(7).trim()
+    // Format 3: AWS SigV4 — Authorization: AWS4-HMAC-SHA256 Credential=<accessKeyId>/date/region/s3/aws4_request, ...
+    if (authHeader.startsWith('AWS4-HMAC-SHA256')) {
+      const credentialMatch = authHeader.match(/Credential=([^/,\s]+)/)
+      if (credentialMatch) return credentialMatch[1].trim()
+    }
   }
 
-  // Format 3: AWS SigV4 — Authorization: AWS4-HMAC-SHA256 Credential=<accessKeyId>/date/region/s3/aws4_request, ...
-  if (authHeader.startsWith('AWS4-HMAC-SHA256')) {
-    const credentialMatch = authHeader.match(/Credential=([^/,\s]+)/)
-    if (credentialMatch) return credentialMatch[1].trim()
+  // Format 4: SigV4 pre-signed URL
+  const query = request.query
+  if (query && typeof query === 'object') {
+    for (const [key, value] of Object.entries(query)) {
+      if (typeof key !== 'string' || key.toLowerCase() !== 'x-amz-credential') continue
+
+      const rawValue = Array.isArray(value) ? value[0] : value
+      if (typeof rawValue !== 'string' || rawValue.trim() === '') continue
+
+      const decoded = decodeURIComponent(rawValue)
+      const accessKey = decoded.split('/')[0]?.trim()
+      if (accessKey) return accessKey
+    }
   }
 
   return null
