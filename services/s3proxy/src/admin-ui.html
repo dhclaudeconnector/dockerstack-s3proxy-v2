@@ -286,7 +286,16 @@
       <div class="status-line" id="publicFilesStatus">Danh sách file public chưa được tải. Bấm “Refresh file public” để lấy dữ liệu mới.</div>
       <div class="table-wrap">
         <table class="responsive-table">
-          <thead><tr><th>Path</th><th>Backend</th><th>Meta</th><th>Direct Link</th><th>Updated</th><th>Action</th></tr></thead>
+          <thead>
+            <tr>
+              <th class="sortable" data-public-sort="path">Path</th>
+              <th class="sortable" data-public-sort="accountId">Backend</th>
+              <th class="sortable" data-public-sort="sizeBytes">Meta</th>
+              <th>Direct Link</th>
+              <th class="sortable" data-public-sort="updatedAt">Updated</th>
+              <th>Action</th>
+            </tr>
+          </thead>
           <tbody id="publicFilesBody"></tbody>
         </table>
       </div>
@@ -338,7 +347,16 @@
 
       <div class="table-wrap">
         <table class="responsive-table">
-          <thead><tr><th>Account / Scope</th><th>Bucket / Object key</th><th>Backend key</th><th>Meta</th><th>Updated</th><th>Action</th></tr></thead>
+          <thead>
+            <tr>
+              <th class="sortable" data-all-files-sort="accountId">Account / Scope</th>
+              <th class="sortable" data-all-files-sort="logicalBucket">Bucket / Object key</th>
+              <th class="sortable" data-all-files-sort="backendKey">Backend key</th>
+              <th class="sortable" data-all-files-sort="sizeBytes">Meta</th>
+              <th class="sortable" data-all-files-sort="updatedAt">Updated</th>
+              <th>Action</th>
+            </tr>
+          </thead>
           <tbody id="allFilesBody"></tbody>
         </table>
       </div>
@@ -440,6 +458,8 @@ const state = {
   activeTab: 'overview',
   core: { jobs: [], accounts: [], cronKinds: [], stats: null, status: '-', instanceId: '-', deployVersion: '-', rtdb: {} },
   accountSort: { key: 'addedAt', direction: 'desc' },
+  publicSort: { key: 'updatedAt', direction: 'desc' },
+  allFilesSort: { key: 'updatedAt', direction: 'desc' },
   publicFiles: [],
   publicFilesLoaded: false,
   allFiles: [],
@@ -853,9 +873,9 @@ async function runServiceParseFlow() {
   }
 }
 
-function sortIndicator(key) {
-  if (state.accountSort.key !== key) return ''
-  return state.accountSort.direction === 'asc' ? ' ▲' : ' ▼'
+function sortIndicator(sortState, key) {
+  if (sortState.key !== key) return ''
+  return sortState.direction === 'asc' ? ' ▲' : ' ▼'
 }
 
 function sortAccounts(accounts) {
@@ -881,6 +901,38 @@ function sortAccounts(accounts) {
     return Number(left.addedAt || 0) - Number(right.addedAt || 0)
   })
 }
+
+function sortPublicFiles(files) {
+  const { key, direction } = state.publicSort
+  const multiplier = direction === 'asc' ? 1 : -1
+  return [...files].sort((left, right) => {
+    let value = 0
+    if (key === 'path') value = String(left.path || '').localeCompare(String(right.path || ''))
+    else if (key === 'accountId') value = String(left.accountId || '').localeCompare(String(right.accountId || ''))
+    else if (key === 'sizeBytes') value = (left.sizeBytes || 0) - (right.sizeBytes || 0)
+    else if (key === 'updatedAt') value = (left.updatedAt || left.uploadedAt || 0) - (right.updatedAt || right.uploadedAt || 0)
+
+    if (value !== 0) return value * multiplier
+    return String(left.path || '').localeCompare(String(right.path || ''))
+  })
+}
+
+function sortAllFiles(files) {
+  const { key, direction } = state.allFilesSort
+  const multiplier = direction === 'asc' ? 1 : -1
+  return [...files].sort((left, right) => {
+    let value = 0
+    if (key === 'accountId') value = `${left.accountId || ''}|${left.routeScope || ''}`.localeCompare(`${right.accountId || ''}|${right.routeScope || ''}`)
+    else if (key === 'logicalBucket') value = `${left.logicalBucket || ''}|${left.objectKey || ''}`.localeCompare(`${right.logicalBucket || ''}|${right.objectKey || ''}`)
+    else if (key === 'backendKey') value = String(left.backendKey || '').localeCompare(String(right.backendKey || ''))
+    else if (key === 'sizeBytes') value = (left.sizeBytes || 0) - (right.sizeBytes || 0)
+    else if (key === 'updatedAt') value = (left.updatedAt || left.uploadedAt || 0) - (right.updatedAt || right.uploadedAt || 0)
+
+    if (value !== 0) return value * multiplier
+    return `${left.accountId || ''}|${left.objectKey || ''}`.localeCompare(`${right.accountId || ''}|${right.objectKey || ''}`)
+  })
+}
+
 
 function renderOverview() {
   const core = state.core
@@ -1006,7 +1058,7 @@ function renderAccounts() {
       accountId: 'Account', endpoint: 'Endpoint / Bucket', owner: 'Owner / Supabase',
       usedBytes: 'Used / Quota', usedPercent: 'Percent', status: 'Status', addedAt: 'Added at',
     }[key] || key
-    th.textContent = `${baseText}${sortIndicator(key)}`
+    th.textContent = `${baseText}${sortIndicator(state.accountSort, key)}`
   })
 
   if (sorted.length === 0) {
@@ -1086,6 +1138,32 @@ document.querySelectorAll('th[data-account-sort]').forEach((th) => {
   })
 })
 
+document.querySelectorAll('th[data-public-sort]').forEach((th) => {
+  th.addEventListener('click', () => {
+    const key = th.dataset.publicSort
+    if (state.publicSort.key === key) {
+      state.publicSort.direction = state.publicSort.direction === 'asc' ? 'desc' : 'asc'
+    } else {
+      state.publicSort.key = key
+      state.publicSort.direction = key === 'updatedAt' ? 'desc' : 'asc'
+    }
+    renderPublicFiles()
+  })
+})
+
+document.querySelectorAll('th[data-all-files-sort]').forEach((th) => {
+  th.addEventListener('click', () => {
+    const key = th.dataset.allFilesSort
+    if (state.allFilesSort.key === key) {
+      state.allFilesSort.direction = state.allFilesSort.direction === 'asc' ? 'desc' : 'asc'
+    } else {
+      state.allFilesSort.key = key
+      state.allFilesSort.direction = key === 'updatedAt' ? 'desc' : 'asc'
+    }
+    renderAllFiles()
+  })
+})
+
 function renderPublicFiles() {
   if (!state.publicFilesLoaded) {
     publicFilesBody.innerHTML = `<tr><td colspan="6"><div class="empty-state">Danh sách file public chưa được tải. Bấm refresh để lấy dữ liệu mới.</div></td></tr>`
@@ -1097,7 +1175,16 @@ function renderPublicFiles() {
     return
   }
 
-  publicFilesBody.innerHTML = state.publicFiles.map((file) => `
+  const sorted = sortPublicFiles(state.publicFiles)
+  publicFilesStatus.textContent = `Tổng ${sorted.length} file public. Đang sắp theo ${state.publicSort.key} (${state.publicSort.direction === 'asc' ? 'tăng dần' : 'giảm dần'}).`
+
+  document.querySelectorAll('th[data-public-sort]').forEach((th) => {
+    const key = th.dataset.publicSort
+    const baseText = { path: 'Path', accountId: 'Backend', sizeBytes: 'Meta', updatedAt: 'Updated' }[key] || key
+    th.textContent = `${baseText}${sortIndicator(state.publicSort, key)}`
+  })
+
+  publicFilesBody.innerHTML = sorted.map((file) => `
     <tr>
       <td data-label="Path">${escapeHtml(file.path)}</td>
       <td data-label="Backend">${escapeHtml(file.accountId)}<br/><span class="hint">${escapeHtml(file.backendKey)}</span></td>
@@ -1191,15 +1278,21 @@ function renderAllFiles() {
     return
   }
 
-  const files = filterManagedFiles(state.allFiles)
-  allFilesStatus.textContent = `Hiển thị ${files.length}/${state.allFiles.length} file theo bộ lọc hiện tại.`
+  const sorted = sortAllFiles(filterManagedFiles(state.allFiles))
+  allFilesStatus.textContent = `Hiển thị ${sorted.length}/${state.allFiles.length} file theo bộ lọc. Đang sắp theo ${state.allFilesSort.key} (${state.allFilesSort.direction === 'asc' ? 'tăng dần' : 'giảm dần'}).`
 
-  if (files.length === 0) {
+  document.querySelectorAll('th[data-all-files-sort]').forEach((th) => {
+    const key = th.dataset.allFilesSort
+    const baseText = { accountId: 'Account / Scope', logicalBucket: 'Bucket / Object key', backendKey: 'Backend key', sizeBytes: 'Meta', updatedAt: 'Updated' }[key] || key
+    th.textContent = `${baseText}${sortIndicator(state.allFilesSort, key)}`
+  })
+
+  if (sorted.length === 0) {
     allFilesBody.innerHTML = `<tr><td colspan="6"><div class="empty-state">Không có file nào khớp bộ lọc hiện tại.</div></td></tr>`
     return
   }
 
-  allFilesBody.innerHTML = files.map((file) => `
+  allFilesBody.innerHTML = sorted.map((file) => `
     <tr>
       <td data-label="Account / Scope">${escapeHtml(file.accountId)}<br/><span class="hint">scope=${escapeHtml(file.routeScope)} | state=${escapeHtml(file.state || '-')}</span></td>
       <td data-label="Bucket / Object key">${escapeHtml(file.logicalBucket)}<br/><span class="hint">${escapeHtml(file.objectKey)}</span></td>
