@@ -89,7 +89,8 @@ function ensureServeConfigFileFromEnv() {
     normalizeHostLabel((process.env.TAILSCALE_TAILNET_DOMAIN || "").trim()),
   );
   if (!tailnetDomain) {
-    throw new Error("TAILSCALE_TAILNET_DOMAIN is required to build tailscale/serve.json");
+    console.log("⚠️  serve-config: TAILSCALE_TAILNET_DOMAIN is empty, skip writing tailscale/serve.json.");
+    return;
   }
   const fqdn = [projectName, tailnetDomain].filter(Boolean).join(".");
   const webHostKey = `${fqdn}:443`;
@@ -104,8 +105,14 @@ function ensureServeConfigFileFromEnv() {
 
   const serveJsonPath = path.join(__dirname, "serve.json");
   fs.mkdirSync(path.dirname(serveJsonPath), { recursive: true });
-  fs.writeFileSync(serveJsonPath, `${JSON.stringify(serveConfig, null, 2)}\n`, "utf-8");
-  console.log(`✅  serve-config: wrote ${serveJsonPath} (${webHostKey})`);
+  try {
+    fs.writeFileSync(serveJsonPath, `${JSON.stringify(serveConfig, null, 2)}\n`, "utf-8");
+    console.log(`✅  serve-config: wrote ${serveJsonPath} (${webHostKey})`);
+  } catch (err) {
+    const code = err && typeof err === "object" && "code" in err ? err.code : "WRITE_FAILED";
+    const message = err && typeof err === "object" && "message" in err ? err.message : String(err);
+    console.log(`⚠️  serve-config: cannot write ${serveJsonPath} (${code}: ${message}), continuing.`);
+  }
 }
 
 function pickDeviceId(device) {
