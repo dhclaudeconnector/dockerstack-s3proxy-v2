@@ -5,7 +5,7 @@
     }
   },
   "Web": {
-    "dockerstacks3proxy.tail03fb4e.ts.net:443": {
+    "dockerstacks3proxyv2.tail353132.ts.net:443": {
       "Handlers": {
         "/": {
           "Proxy": "http://127.0.0.1:80"
