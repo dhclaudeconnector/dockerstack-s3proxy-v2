@@ -112,3 +112,16 @@ npm run dockerapp-exec:up
 ```
 
 Nếu không bật block nào, app vẫn dùng logo và tên mặc định.
+
+## 2026-05-04 - Sửa lỗi tạo app chỉ hiện chữ cái thay vì logo
+
+### Đã sửa
+
+- Khi cài Admin UI ra màn hình chính, icon không còn chỉ phụ thuộc vào SVG `/admin/icon` nữa.
+- Manifest PWA giờ tự khai báo các icon PNG có sẵn như `512x512`, `384x384`, `192x192`, giúp Chrome/Samsung Browser nhận logo ổn định hơn.
+- File preset `.env.branding-presets` và `.env.example` đã đổi khuyến nghị sang dùng `admin-logo-512.png`.
+- Có thêm route `/admin/icons/...` và `/admin/apple-touch-icon.png` để trình duyệt lấy đúng file icon phù hợp.
+
+### Lưu ý khi dùng
+
+Nếu app/shortcut cũ đã được cài ra màn hình chính và đang hiện chữ cái, hãy gỡ app/shortcut đó rồi cài lại sau khi restart stack. Một số điện thoại giữ cache icon đã cài ở cấp hệ điều hành.

@@ -105,3 +105,18 @@
 
 - No S3 proxy runtime logic, account logic, cron jobs, backup logic, or route behavior was changed.
 - Recommended runtime icon path remains SVG: `/app/admin-assets/logo-options/<option>/admin-logo.svg`.
+
+## 2026-05-04 - Fix PWA installed app icon fallback
+
+### Fixed
+
+- Fixed installed PWA app icon falling back to the first letter of the app name when the configured icon is SVG.
+- Admin manifest now auto-detects generated sibling PNG files (`admin-logo-512.png`, `admin-logo-384.png`, `admin-logo-192.png`, etc.) from the selected logo option directory.
+- Added `/admin/icons/:filename` route for generated PNG/SVG icon files and `/admin/apple-touch-icon.png` for Apple touch icon fallback.
+- Updated `/admin/favicon.ico`, `/admin/icon`, `/admin/icon.svg`, `/admin/manifest.webmanifest`, and `/admin/sw.js` with `Cache-Control: no-store` to reduce stale branding cache during testing.
+- Bumped Admin UI service worker cache name from `s3proxy-admin-v3` to `s3proxy-admin-v4`.
+
+### Changed
+
+- Branding presets now recommend `admin-logo-512.png` for `S3PROXY_ADMIN_ICON_PATH` instead of SVG, because PNG 192/512 is more reliable for Android/Chrome/Samsung Browser installed app icons.
+- Documentation now notes that already-installed PWA shortcuts may need to be removed and installed again to refresh the OS-level app icon.

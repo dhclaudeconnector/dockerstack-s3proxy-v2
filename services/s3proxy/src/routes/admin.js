@@ -6,7 +6,7 @@
 import { randomBytes } from "crypto";
 import { Readable } from "stream";
 import { existsSync, readFileSync } from "fs";
-import { dirname, extname, isAbsolute, join, resolve } from "path";
+import { basename, dirname, extname, isAbsolute, join, resolve } from "path";
 import { fileURLToPath } from "url";
 import { DeleteObjectCommand, GetObjectCommand, HeadBucketCommand, ListObjectsV2Command, PutObjectCommand } from "@aws-sdk/client-s3";
 
@@ -104,6 +104,102 @@ function readAdminIconAsset() {
   }
 
   return { body: defaultAdminIcon, mime: "image/svg+xml" };
+}
+
+const GENERATED_ADMIN_ICON_SIZES = [512, 384, 192, 180, 128, 64, 48, 32, 16];
+
+function isAllowedAdminIconFilename(filename) {
+  return (
+    filename === "admin-logo.svg" ||
+    filename === "favicon.ico" ||
+    /^admin-logo-(512|384|192|180|128|64|48|32|16)\.png$/.test(filename)
+  );
+}
+
+function getAdminIconDirectory(branding = getAdminBranding()) {
+  if (!branding.iconPath) return "";
+  return dirname(branding.iconPath);
+}
+
+function readAdminIconFromDirectory(filename) {
+  const safeFilename = basename(normalizeString(filename));
+  if (!safeFilename || !isAllowedAdminIconFilename(safeFilename)) return null;
+
+  const branding = getAdminBranding();
+  const iconDirectory = getAdminIconDirectory(branding);
+  if (!iconDirectory) return null;
+
+  const candidatePath = join(iconDirectory, safeFilename);
+  if (!existsSync(candidatePath)) return null;
+
+  return {
+    body: readFileSync(candidatePath),
+    mime: inferIconMime(candidatePath),
+    path: candidatePath,
+  };
+}
+
+function readAdminFaviconAsset() {
+  const favicon = readAdminIconFromDirectory("favicon.ico");
+  if (favicon) return favicon;
+  return readAdminIconAsset();
+}
+
+function readAdminPreferredPngIcon(preferredSizes = [180, 192, 512]) {
+  for (const size of preferredSizes) {
+    const icon = readAdminIconFromDirectory(`admin-logo-${size}.png`);
+    if (icon) return icon;
+  }
+  return readAdminIconAsset();
+}
+
+function getAdminManifestIconEntries() {
+  const branding = getAdminBranding();
+  const iconDirectory = getAdminIconDirectory(branding);
+  const icons = [];
+  const seen = new Set();
+
+  const pushIcon = (entry) => {
+    if (!entry?.src || seen.has(entry.src)) return;
+    seen.add(entry.src);
+    icons.push(entry);
+  };
+
+  if (iconDirectory) {
+    for (const size of GENERATED_ADMIN_ICON_SIZES) {
+      const filename = `admin-logo-${size}.png`;
+      const candidatePath = join(iconDirectory, filename);
+      if (!existsSync(candidatePath)) continue;
+
+      pushIcon({
+        src: `/admin/icons/${filename}`,
+        sizes: `${size}x${size}`,
+        type: "image/png",
+        purpose: size >= 192 ? "any maskable" : "any",
+      });
+    }
+
+    const svgPath = join(iconDirectory, "admin-logo.svg");
+    if (existsSync(svgPath)) {
+      pushIcon({
+        src: "/admin/icons/admin-logo.svg",
+        sizes: "any",
+        type: "image/svg+xml",
+        purpose: "any",
+      });
+    }
+  }
+
+  if (icons.length === 0) {
+    pushIcon({
+      src: "/admin/icon",
+      sizes: branding.iconSizes,
+      type: branding.iconMime,
+      purpose: branding.iconPurpose,
+    });
+  }
+
+  return icons;
 }
 
 const RUNNER_INFO_PREFIX = "_DOTENVRTDB_RUNNER_";
@@ -330,7 +426,7 @@ function deriveDockerAccessFromEnv() {
 }
 
 const adminServiceWorker = `
-const CACHE_NAME = 's3proxy-admin-v3'
+const CACHE_NAME = 's3proxy-admin-v4'
 const ADMIN_SHELL = ['/admin', '/admin/manifest.webmanifest', '/admin/icon']
 
 self.addEventListener('install', (event) => {
@@ -1026,7 +1122,7 @@ export default async function adminRoutes(fastify, _opts) {
     },
     async (_request, reply) => {
       const icon = readAdminIconAsset();
-      reply.type(icon.mime).send(icon.body);
+      reply.header("Cache-Control", "no-store").type(icon.mime).send(icon.body);
     },
   );
 
@@ -1036,8 +1132,23 @@ export default async function adminRoutes(fastify, _opts) {
       config: { skipAuth: true },
     },
     async (_request, reply) => {
-      const icon = readAdminIconAsset();
-      reply.type(icon.mime).send(icon.body);
+      const icon = readAdminIconFromDirectory("admin-logo.svg") || readAdminIconAsset();
+      reply.header("Cache-Control", "no-store").type(icon.mime).send(icon.body);
+    },
+  );
+
+  fastify.get(
+    "/admin/icons/:filename",
+    {
+      config: { skipAuth: true },
+    },
+    async (request, reply) => {
+      const icon = readAdminIconFromDirectory(request.params?.filename);
+      if (!icon) {
+        reply.code(404).send({ ok: false, error: "Admin icon file not found" });
+        return;
+      }
+      reply.header("Cache-Control", "no-store").type(icon.mime).send(icon.body);
     },
   );
 
@@ -1047,8 +1158,19 @@ export default async function adminRoutes(fastify, _opts) {
       config: { skipAuth: true },
     },
     async (_request, reply) => {
-      const icon = readAdminIconAsset();
-      reply.type(icon.mime).send(icon.body);
+      const icon = readAdminFaviconAsset();
+      reply.header("Cache-Control", "no-store").type(icon.mime).send(icon.body);
+    },
+  );
+
+  fastify.get(
+    "/admin/apple-touch-icon.png",
+    {
+      config: { skipAuth: true },
+    },
+    async (_request, reply) => {
+      const icon = readAdminPreferredPngIcon([180, 192, 512]);
+      reply.header("Cache-Control", "no-store").type(icon.mime).send(icon.body);
     },
   );
 
@@ -1071,6 +1193,7 @@ export default async function adminRoutes(fastify, _opts) {
         iconPurpose: branding.iconPurpose,
         customIconConfigured: Boolean(branding.iconPath),
         customIconFound: Boolean(branding.iconPath && existsSync(branding.iconPath)),
+        manifestIcons: getAdminManifestIconEntries(),
       });
     },
   );
@@ -1082,7 +1205,7 @@ export default async function adminRoutes(fastify, _opts) {
     },
     async (_request, reply) => {
       const branding = getAdminBranding();
-      reply.type("application/manifest+json").send({
+      reply.header("Cache-Control", "no-store").type("application/manifest+json").send({
         name: branding.name,
         short_name: branding.shortName,
         description: branding.description,
@@ -1091,14 +1214,7 @@ export default async function adminRoutes(fastify, _opts) {
         display: "standalone",
         background_color: branding.backgroundColor,
         theme_color: branding.themeColor,
-        icons: [
-          {
-            src: "/admin/icon",
-            sizes: branding.iconSizes,
-            type: branding.iconMime,
-            purpose: branding.iconPurpose,
-          },
-        ],
+        icons: getAdminManifestIconEntries(),
       });
     },
   );
@@ -1109,7 +1225,7 @@ export default async function adminRoutes(fastify, _opts) {
       config: { skipAuth: true },
     },
     async (_request, reply) => {
-      reply.type("application/javascript; charset=utf-8").send(adminServiceWorker);
+      reply.header("Cache-Control", "no-store").type("application/javascript; charset=utf-8").send(adminServiceWorker);
     },
   );
 

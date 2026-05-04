@@ -17,7 +17,6 @@ logs/app/
 logs/*/
 .docker-volumes/*
 !.docker-volumes/.gitkeep
-!.docker-volumes/s3proxy-admin-assets
 # tailscale/serve.json
 
 # ── Node.js ──────────────────────────────────────────────────────
