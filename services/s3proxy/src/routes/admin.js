@@ -5,8 +5,8 @@
 
 import { randomBytes } from "crypto";
 import { Readable } from "stream";
-import { readFileSync } from "fs";
-import { dirname, join } from "path";
+import { existsSync, readFileSync } from "fs";
+import { dirname, extname, isAbsolute, join, resolve } from "path";
 import { fileURLToPath } from "url";
 import { DeleteObjectCommand, GetObjectCommand, HeadBucketCommand, ListObjectsV2Command, PutObjectCommand } from "@aws-sdk/client-s3";
 
@@ -41,9 +41,70 @@ import { syncAccountsUsageBatch, syncRouteToRtdb } from "../controlPlane.js";
 import { refreshMetadataMetrics } from "./metrics.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const adminHtml = readFileSync(join(__dirname, "..", "admin-ui.html"), "utf-8");
-const adminIcon = readFileSync(join(__dirname, "..", "admin-icon.svg"), "utf-8");
+const adminHtmlTemplate = readFileSync(join(__dirname, "..", "admin-ui.html"), "utf-8");
+const defaultAdminIcon = readFileSync(join(__dirname, "..", "admin-icon.svg"));
 const DEFAULT_ADMIN_QUOTA_BYTES = 1024 * 1024 * 1024;
+
+function inferIconMime(iconPath) {
+  const extension = extname(normalizeString(iconPath)).toLowerCase();
+  if (extension === ".svg") return "image/svg+xml";
+  if (extension === ".png") return "image/png";
+  if (extension === ".jpg" || extension === ".jpeg") return "image/jpeg";
+  if (extension === ".webp") return "image/webp";
+  if (extension === ".ico") return "image/x-icon";
+  return "image/svg+xml";
+}
+
+function resolveRuntimePath(value) {
+  const normalized = normalizeString(value);
+  if (!normalized) return "";
+  return isAbsolute(normalized) ? normalized : resolve(process.cwd(), normalized);
+}
+
+function getAdminBranding() {
+  const iconPath = resolveRuntimePath(config.ADMIN_ICON_PATH);
+  const iconMime = normalizeString(config.ADMIN_ICON_MIME) || inferIconMime(iconPath);
+
+  return {
+    name: config.ADMIN_APP_NAME,
+    shortName: config.ADMIN_APP_SHORT_NAME,
+    description: config.ADMIN_APP_DESCRIPTION,
+    themeColor: config.ADMIN_THEME_COLOR,
+    backgroundColor: config.ADMIN_BACKGROUND_COLOR,
+    iconPath,
+    iconMime,
+    iconSizes: config.ADMIN_ICON_SIZES,
+    iconPurpose: config.ADMIN_ICON_PURPOSE,
+  };
+}
+
+function escapeHtml(value) {
+  return normalizeString(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function renderAdminHtml() {
+  const branding = getAdminBranding();
+
+  return adminHtmlTemplate
+    .replaceAll("__ADMIN_APP_NAME__", escapeHtml(branding.name))
+    .replaceAll("__ADMIN_APP_DESCRIPTION__", escapeHtml(branding.description))
+    .replaceAll("__ADMIN_THEME_COLOR__", escapeHtml(branding.themeColor))
+    .replaceAll("__ADMIN_ICON_MIME__", escapeHtml(branding.iconMime));
+}
+
+function readAdminIconAsset() {
+  const branding = getAdminBranding();
+  if (branding.iconPath && existsSync(branding.iconPath)) {
+    return { body: readFileSync(branding.iconPath), mime: branding.iconMime };
+  }
+
+  return { body: defaultAdminIcon, mime: "image/svg+xml" };
+}
 
 const RUNNER_INFO_PREFIX = "_DOTENVRTDB_RUNNER_";
 const DOCKER_ACCESS_URL_PREFIX = "_DOCKER_ACCESS_URL_";
@@ -269,8 +330,8 @@ function deriveDockerAccessFromEnv() {
 }
 
 const adminServiceWorker = `
-const CACHE_NAME = 's3proxy-admin-v2'
-const ADMIN_SHELL = ['/admin', '/admin/manifest.webmanifest', '/admin/icon.svg']
+const CACHE_NAME = 's3proxy-admin-v3'
+const ADMIN_SHELL = ['/admin', '/admin/manifest.webmanifest', '/admin/icon']
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -954,7 +1015,18 @@ export default async function adminRoutes(fastify, _opts) {
       config: { skipAuth: true },
     },
     async (_request, reply) => {
-      reply.type("text/html; charset=utf-8").send(adminHtml);
+      reply.type("text/html; charset=utf-8").send(renderAdminHtml());
+    },
+  );
+
+  fastify.get(
+    "/admin/icon",
+    {
+      config: { skipAuth: true },
+    },
+    async (_request, reply) => {
+      const icon = readAdminIconAsset();
+      reply.type(icon.mime).send(icon.body);
     },
   );
 
@@ -964,7 +1036,42 @@ export default async function adminRoutes(fastify, _opts) {
       config: { skipAuth: true },
     },
     async (_request, reply) => {
-      reply.type("image/svg+xml; charset=utf-8").send(adminIcon);
+      const icon = readAdminIconAsset();
+      reply.type(icon.mime).send(icon.body);
+    },
+  );
+
+  fastify.get(
+    "/admin/favicon.ico",
+    {
+      config: { skipAuth: true },
+    },
+    async (_request, reply) => {
+      const icon = readAdminIconAsset();
+      reply.type(icon.mime).send(icon.body);
+    },
+  );
+
+  fastify.get(
+    "/admin/api/branding",
+    {
+      config: { skipAuth: true },
+    },
+    async (_request, reply) => {
+      const branding = getAdminBranding();
+      reply.send({
+        name: branding.name,
+        shortName: branding.shortName,
+        description: branding.description,
+        themeColor: branding.themeColor,
+        backgroundColor: branding.backgroundColor,
+        iconUrl: "/admin/icon",
+        iconMime: branding.iconMime,
+        iconSizes: branding.iconSizes,
+        iconPurpose: branding.iconPurpose,
+        customIconConfigured: Boolean(branding.iconPath),
+        customIconFound: Boolean(branding.iconPath && existsSync(branding.iconPath)),
+      });
     },
   );
 
@@ -974,21 +1081,22 @@ export default async function adminRoutes(fastify, _opts) {
       config: { skipAuth: true },
     },
     async (_request, reply) => {
+      const branding = getAdminBranding();
       reply.type("application/manifest+json").send({
-        name: "S3Proxy Admin",
-        short_name: "S3Proxy",
-        description: "Admin console for S3Proxy accounts, probes and cron jobs",
+        name: branding.name,
+        short_name: branding.shortName,
+        description: branding.description,
         start_url: "/admin",
         scope: "/admin/",
         display: "standalone",
-        background_color: "#0b1020",
-        theme_color: "#0b1020",
+        background_color: branding.backgroundColor,
+        theme_color: branding.themeColor,
         icons: [
           {
-            src: "/admin/icon.svg",
-            sizes: "any",
-            type: "image/svg+xml",
-            purpose: "any maskable",
+            src: "/admin/icon",
+            sizes: branding.iconSizes,
+            type: branding.iconMime,
+            purpose: branding.iconPurpose,
           },
         ],
       });

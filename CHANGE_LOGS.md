@@ -90,3 +90,18 @@
 - Admin API /admin/api/overview: trả thêm runnerInfo và dockerAccess (inferred URLs + custom env URLs).
 - compose.apps.yml / .env.example: bổ sung hướng dẫn pass _DOTENVRTDB_RUNNER_* và _DOCKER_ACCESS_URL_* vào container.
 
+
+## 2026-05-04 - Admin/PWA branding asset presets
+
+### Added
+
+- Added 5 ready-to-use Admin/PWA logo options under `.docker-volumes/s3proxy-admin-assets/logo-options/`.
+- Each logo option includes SVG, PNG sizes `512/384/192/180/128/64/48/32/16`, and multi-size `favicon.ico`.
+- Added `.env.branding-presets` with commented dotenv blocks; users can uncomment exactly one logo preset and restart the stack.
+- Added `branding-preview.png` and `branding-preview.html` for visual selection.
+- Expanded `.env.example` and `docs/services/app.md` with host/container path, MIME type, icon size, SVG/PNG/ICO, and usage guidance.
+
+### Notes
+
+- No S3 proxy runtime logic, account logic, cron jobs, backup logic, or route behavior was changed.
+- Recommended runtime icon path remains SVG: `/app/admin-assets/logo-options/<option>/admin-logo.svg`.

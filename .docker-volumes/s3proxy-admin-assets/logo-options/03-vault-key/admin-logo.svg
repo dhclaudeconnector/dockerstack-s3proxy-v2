@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Vault Storage Admin">
+  <defs>
+    <linearGradient id="bg" x1="80" y1="50" x2="430" y2="462" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#10b981"/>
+      <stop offset="0.5" stop-color="#047857"/>
+      <stop offset="1" stop-color="#052e2b"/>
+    </linearGradient>
+    <linearGradient id="lock" x1="160" y1="140" x2="350" y2="410" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ecfdf5"/>
+      <stop offset="1" stop-color="#6ee7b7"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <path d="M178 235v-36c0-53 35-91 78-91s78 38 78 91v36h-50v-36c0-25-11-43-28-43s-28 18-28 43v36h-50Z" fill="#d1fae5"/>
+  <rect x="138" y="222" width="236" height="190" rx="38" fill="url(#lock)"/>
+  <circle cx="256" cy="310" r="28" fill="#064e3b"/>
+  <path d="M256 332v42" stroke="#064e3b" stroke-width="24" stroke-linecap="round"/>
+  <path d="M340 168l46-46 24 24-18 18 20 20-24 24-20-20-28 28" fill="none" stroke="#fef3c7" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="256" y="466" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="48" font-weight="900" fill="#ecfdf5">S3</text>
+</svg>

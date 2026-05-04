@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="S3Proxy Shield">
+  <defs>
+    <linearGradient id="bg" x1="80" y1="60" x2="440" y2="460" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#172554"/>
+      <stop offset="0.55" stop-color="#0f172a"/>
+      <stop offset="1" stop-color="#020617"/>
+    </linearGradient>
+    <linearGradient id="cyan" x1="128" y1="130" x2="384" y2="390" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#67e8f9"/>
+      <stop offset="1" stop-color="#2563eb"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#020617" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <path d="M256 76 388 126v118c0 86-54 158-132 194-78-36-132-108-132-194V126L256 76Z" fill="url(#cyan)" filter="url(#shadow)"/>
+  <path d="M256 106 356 144v96c0 66-39 122-100 153-61-31-100-87-100-153v-96l100-38Z" fill="#0b1020" opacity="0.9"/>
+  <ellipse cx="256" cy="191" rx="74" ry="28" fill="#38bdf8"/>
+  <path d="M182 191v104c0 15 33 28 74 28s74-13 74-28V191" fill="#1d4ed8"/>
+  <ellipse cx="256" cy="295" rx="74" ry="28" fill="#60a5fa"/>
+  <path d="M205 231c14 10 37 16 51 16s37-6 51-16" fill="none" stroke="#bfdbfe" stroke-width="14" stroke-linecap="round" opacity="0.9"/>
+  <text x="256" y="386" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="70" font-weight="800" fill="#e0f2fe">S3</text>
+</svg>

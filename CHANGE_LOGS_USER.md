@@ -89,3 +89,26 @@ See `docs/DEPLOY.md` for the full migration guide.
 - Admin API /admin/api/overview: trả thêm runnerInfo và dockerAccess (inferred URLs + custom env URLs).
 - compose.apps.yml / .env.example: bổ sung hướng dẫn pass _DOTENVRTDB_RUNNER_* và _DOCKER_ACCESS_URL_* vào container.
 
+
+## 2026-05-04 - Thêm 5 logo Admin/PWA chọn nhanh bằng .env
+
+### Có gì mới
+
+- Đã thêm sẵn 5 bộ logo cho trang Admin/PWA.
+- Mỗi bộ có đủ SVG, PNG nhiều kích cỡ và favicon.ico.
+- Có file xem nhanh logo: `.docker-volumes/s3proxy-admin-assets/branding-preview.png`.
+- Có file `.env.branding-presets` chứa sẵn 5 block cấu hình. Bạn chỉ cần copy/uncomment đúng một block vào `.env`, rồi restart stack.
+
+### Cách dùng nhanh
+
+1. Mở `branding-preview.png` để chọn logo.
+2. Mở `.env.branding-presets` hoặc `.env.example`.
+3. Bỏ comment đúng một block `LOGO OPTION` muốn dùng.
+4. Restart stack bằng:
+
+```bash
+npm run dockerapp-exec:down
+npm run dockerapp-exec:up
+```
+
+Nếu không bật block nào, app vẫn dùng logo và tên mặc định.

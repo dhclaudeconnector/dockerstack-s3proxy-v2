@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Edge Rocket Admin">
+  <defs>
+    <linearGradient id="bg" x1="70" y1="48" x2="440" y2="466" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#a78bfa"/>
+      <stop offset="0.48" stop-color="#7c3aed"/>
+      <stop offset="1" stop-color="#1e1b4b"/>
+    </linearGradient>
+    <linearGradient id="rocket" x1="202" y1="82" x2="334" y2="374" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#ddd6fe"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <path d="M258 78c62 42 87 117 73 200l-72 72-72-72c-16-83 9-158 71-200Z" fill="url(#rocket)"/>
+  <circle cx="258" cy="178" r="37" fill="#4f46e5"/>
+  <circle cx="258" cy="178" r="21" fill="#c4b5fd"/>
+  <path d="M187 278l-52 82 86-21" fill="#f97316"/>
+  <path d="M331 278l52 82-86-21" fill="#f97316"/>
+  <path d="M222 349c11 41 24 67 36 85 12-18 25-44 36-85" fill="#fbbf24"/>
+  <ellipse cx="258" cy="407" rx="58" ry="22" fill="#111827" opacity="0.24"/>
+  <text x="258" y="276" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="54" font-weight="900" fill="#312e81">S3</text>
+</svg>

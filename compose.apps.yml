@@ -41,6 +41,16 @@ services:
       LRU_MAX: "${S3PROXY_LRU_MAX:-10000}"
       LRU_TTL_MS: "${S3PROXY_LRU_TTL_MS:-300000}"
       DEPLOY_VERSION: "${S3PROXY_DEPLOY_VERSION:-}"
+      # Branding / PWA app name / icon cho /admin. Có mặc định nếu để trống.
+      ADMIN_APP_NAME: "${S3PROXY_ADMIN_APP_NAME:-S3Proxy Admin}"
+      ADMIN_APP_SHORT_NAME: "${S3PROXY_ADMIN_APP_SHORT_NAME:-S3Proxy}"
+      ADMIN_APP_DESCRIPTION: "${S3PROXY_ADMIN_APP_DESCRIPTION:-Admin console for S3Proxy accounts, probes and cron jobs}"
+      ADMIN_THEME_COLOR: "${S3PROXY_ADMIN_THEME_COLOR:-#0b1020}"
+      ADMIN_BACKGROUND_COLOR: "${S3PROXY_ADMIN_BACKGROUND_COLOR:-#0b1020}"
+      ADMIN_ICON_PATH: "${S3PROXY_ADMIN_ICON_PATH:-}"
+      ADMIN_ICON_MIME: "${S3PROXY_ADMIN_ICON_MIME:-}"
+      ADMIN_ICON_SIZES: "${S3PROXY_ADMIN_ICON_SIZES:-any}"
+      ADMIN_ICON_PURPOSE: "${S3PROXY_ADMIN_ICON_PURPOSE:-any maskable}"
       # Runner info footer trong admin UI. Có thể set trực tiếp ở .env hoặc từ CI inject vào compose.
       _DOTENVRTDB_RUNNER_HOST_TYPE: "${_DOTENVRTDB_RUNNER_HOST_TYPE:-}"
       _DOTENVRTDB_RUNNER_REPO: "${_DOTENVRTDB_RUNNER_REPO:-}"
@@ -75,6 +85,7 @@ services:
       - "127.0.0.1:${APP_HOST_PORT:-3000}:${APP_PORT:-3000}"
     volumes:
       - ${DOCKER_VOLUMES_ROOT:-./.docker-volumes}/s3proxy-data:/app/.docker-volumes/s3proxy-data
+      - ${DOCKER_VOLUMES_ROOT:-./.docker-volumes}/s3proxy-admin-assets:/app/admin-assets:ro
     labels:
       # Public HTTP sites behind Cloudflare Tunnel.
       - "caddy=http://${PROJECT_NAME}.${DOMAIN}, http://main.${DOMAIN}, http://${DOMAIN}, http://${PROJECT_NAME_TAILSCALE}.${TAILSCALE_TAILNET_DOMAIN}"

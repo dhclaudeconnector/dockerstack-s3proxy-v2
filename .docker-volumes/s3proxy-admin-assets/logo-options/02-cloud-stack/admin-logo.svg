@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Cloud Stack Admin">
+  <defs>
+    <linearGradient id="bg" x1="58" y1="40" x2="454" y2="468" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0ea5e9"/>
+      <stop offset="0.5" stop-color="#0369a1"/>
+      <stop offset="1" stop-color="#082f49"/>
+    </linearGradient>
+    <linearGradient id="box" x1="145" y1="216" x2="367" y2="400" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f8fafc"/>
+      <stop offset="1" stop-color="#bae6fd"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <path d="M162 250c-34 0-62-26-62-59 0-31 24-56 55-59 17-42 58-72 106-72 55 0 101 39 112 91 28 7 49 32 49 62 0 35-29 64-65 64H162Z" fill="#e0f2fe" opacity="0.96"/>
+  <path d="M155 311 256 254l101 57-101 58-101-58Z" fill="url(#box)"/>
+  <path d="M155 311v61l101 58v-61l-101-58Z" fill="#38bdf8"/>
+  <path d="M357 311v61l-101 58v-61l101-58Z" fill="#075985"/>
+  <path d="M196 310 256 276l60 34-60 34-60-34Z" fill="#f0f9ff" opacity="0.95"/>
+  <text x="256" y="214" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="78" font-weight="900" fill="#0369a1">S3</text>
+</svg>

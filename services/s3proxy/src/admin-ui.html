@@ -3,10 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <meta name="theme-color" content="#0b1020" />
+  <meta name="theme-color" content="__ADMIN_THEME_COLOR__" />
+  <meta name="application-name" content="__ADMIN_APP_NAME__" />
+  <meta name="apple-mobile-web-app-title" content="__ADMIN_APP_NAME__" />
+  <meta name="description" content="__ADMIN_APP_DESCRIPTION__" />
   <link rel="manifest" href="/admin/manifest.webmanifest" crossorigin="use-credentials" />
-  <link rel="icon" href="/admin/icon.svg" type="image/svg+xml" />
-  <title>S3Proxy Admin</title>
+  <link rel="icon" href="/admin/icon" type="__ADMIN_ICON_MIME__" />
+  <link rel="apple-touch-icon" href="/admin/icon" />
+  <title>__ADMIN_APP_NAME__</title>
   <style>
     :root { color-scheme: dark; }
     * { box-sizing: border-box; }
@@ -14,6 +18,9 @@
     .wrap { max-width: 1440px; margin: 0 auto; padding: 24px; }
     h1, h2, h3 { margin: 0 0 12px; }
     h1 { font-size: 28px; }
+    .brand-head { display: flex; align-items: center; gap: 10px; }
+    .brand-logo { width: 38px; height: 38px; border-radius: 12px; object-fit: cover; background: #0f172a; border: 1px solid #2c3c65; flex: 0 0 auto; }
+    .brand-head h1 { margin-bottom: 0; }
     h2 { font-size: 20px; }
     h3 { font-size: 15px; color: #c7d2fe; }
     .card { background: #111a31; border: 1px solid #223156; border-radius: 16px; padding: 16px; margin-bottom: 16px; }
@@ -128,7 +135,10 @@
   <div class="sticky-actions">
     <div class="section-head">
       <div>
-        <h1>S3Proxy Admin</h1>
+        <div class="brand-head">
+          <img id="brandLogo" class="brand-logo" src="/admin/icon" alt="" loading="eager" decoding="async" />
+          <h1 id="appTitle">__ADMIN_APP_NAME__</h1>
+        </div>
         <div id="installHint" class="hint"></div>
       </div>
       <div class="actions">
