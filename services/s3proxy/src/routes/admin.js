@@ -1125,16 +1125,6 @@ export default async function adminRoutes(fastify, _opts) {
   );
 
   fastify.get(
-    "/admin/",
-    {
-      config: { skipAuth: true },
-    },
-    async (_request, reply) => {
-      reply.header("Cache-Control", "no-store").type("text/html; charset=utf-8").send(renderAdminHtml());
-    },
-  );
-
-  fastify.get(
     "/admin/deeplink",
     {
       config: { skipAuth: true },

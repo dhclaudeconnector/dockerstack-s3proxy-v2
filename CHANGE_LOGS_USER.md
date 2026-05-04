@@ -139,3 +139,25 @@ Nếu app/shortcut cũ đã được cài ra màn hình chính và đang hiện 
 ### Tài liệu
 
 Xem hướng dẫn triển khai và kiểm thử tại `docs/services/admin-deeplink.md`.
+
+## 2026-05-04 - Fix lỗi duplicated route khi bật Admin deeplink
+
+### Đã sửa
+
+- Gỡ route khai báo trùng `GET /admin/` trong `services/s3proxy/src/routes/admin.js`.
+- Giữ nguyên route hiện hữu `GET /admin`, vì Fastify/container hiện tại đã xử lý trailing slash theo cấu hình server.
+- Chỉ bổ sung route mới `GET /admin/deeplink` cho luồng deeplink.
+- Không thay đổi logic Accounts, S3, Cron jobs, Public Bucket Proxy.
+
+### Cách kiểm thử nhanh
+
+```bash
+node --check services/s3proxy/src/routes/admin.js
+npm run dockerapp-exec:restart:app
+```
+
+Sau đó mở:
+
+```text
+https://<domain>/admin/deeplink?raw=test-deeplink
+```
