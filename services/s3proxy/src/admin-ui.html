@@ -871,6 +871,88 @@ function setActiveTab(tabKey) {
   }
 }
 
+const ADMIN_DEEPLINK_PATHS = new Set(['/admin/deeplink', '/admin/deeplink/'])
+const ADMIN_DEEPLINK_TEXT_KEYS = ['raw', 'data', 'payload', 'text', 'value', 'accountServiceRawInput']
+const ADMIN_DEEPLINK_BASE64_KEYS = ['raw_b64', 'data_b64', 'payload_b64', 'accountServiceRawInput_b64']
+
+function mergeHashSearchParams(params) {
+  const hash = String(window.location.hash || '').replace(/^#/, '')
+  if (!hash) return params
+
+  const questionIndex = hash.indexOf('?')
+  const hashQuery = questionIndex >= 0 ? hash.slice(questionIndex + 1) : (hash.startsWith('deeplink&') ? hash.slice('deeplink&'.length) : '')
+  if (!hashQuery) return params
+
+  new URLSearchParams(hashQuery).forEach((value, key) => {
+    if (!params.has(key)) params.set(key, value)
+  })
+  return params
+}
+
+function decodeBase64DeepLinkPayload(value) {
+  const normalized = String(value || '').trim().replace(/-/g, '+').replace(/_/g, '/')
+  const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=')
+  const binary = window.atob(padded)
+  const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0))
+  return new TextDecoder().decode(bytes)
+}
+
+function readAdminDeepLinkPayload() {
+  const url = new URL(window.location.href)
+  const params = mergeHashSearchParams(new URLSearchParams(url.search))
+  const isDeepLinkPath = ADMIN_DEEPLINK_PATHS.has(url.pathname)
+  const explicitDeepLink = params.get('deeplink') === 'account-service' || params.get('deeplink') === 'accounts-raw'
+  if (!isDeepLinkPath && !explicitDeepLink) return null
+
+  for (const key of ADMIN_DEEPLINK_BASE64_KEYS) {
+    if (params.has(key)) {
+      return { value: decodeBase64DeepLinkPayload(params.get(key)), sourceKey: key, encoded: 'base64url' }
+    }
+  }
+
+  for (const key of ADMIN_DEEPLINK_TEXT_KEYS) {
+    if (params.has(key)) {
+      return { value: params.get(key), sourceKey: key, encoded: 'url' }
+    }
+  }
+
+  return { value: '', sourceKey: '', encoded: '' }
+}
+
+function applyAdminDeepLink() {
+  let payload = null
+  try {
+    payload = readAdminDeepLinkPayload()
+  } catch (err) {
+    showToast(`Không đọc được dữ liệu deeplink: ${err.message || err}`, 'error')
+    return false
+  }
+
+  if (!payload) return false
+
+  setActiveTab('accounts')
+  if (!accountServiceRawInputEl) {
+    showToast('Không tìm thấy input accountServiceRawInput để nhận dữ liệu deeplink.', 'error')
+    return true
+  }
+
+  accountServiceRawInputEl.value = payload.value || ''
+  accountServiceRawInputEl.dispatchEvent(new Event('input', { bubbles: true }))
+  accountServiceRawInputEl.dispatchEvent(new Event('change', { bubbles: true }))
+  accountServiceRawInputEl.focus({ preventScroll: true })
+  accountServiceRawInputEl.scrollIntoView({ behavior: 'smooth', block: 'center' })
+
+  logMessage('Đã nhận dữ liệu từ deeplink', {
+    tab: 'accounts',
+    input: 'accountServiceRawInput',
+    sourceKey: payload.sourceKey || '(empty)',
+    encoded: payload.encoded || '(none)',
+    length: accountServiceRawInputEl.value.length,
+  })
+  showToast('Đã nhận dữ liệu từ deeplink và đưa vào ô Account service raw input.', 'success')
+  return true
+}
+
 document.querySelectorAll('.tab-btn').forEach((button) => {
   button.addEventListener('click', () => setActiveTab(button.dataset.tab))
 })
@@ -2636,6 +2718,7 @@ setupInstallApp()
 loadBackupJobs().catch(() => {})
 renderPublicFiles()
 renderAllFiles()
+applyAdminDeepLink()
 loadCoreData(false).catch((err) => {
   logMessage(String(err))
   showToast(String(err), 'error')

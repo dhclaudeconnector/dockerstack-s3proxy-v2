@@ -125,3 +125,17 @@ Nếu không bật block nào, app vẫn dùng logo và tên mặc định.
 ### Lưu ý khi dùng
 
 Nếu app/shortcut cũ đã được cài ra màn hình chính và đang hiện chữ cái, hãy gỡ app/shortcut đó rồi cài lại sau khi restart stack. Một số điện thoại giữ cache icon đã cài ở cấp hệ điều hành.
+
+## 2026-05-04 - Bổ sung Admin PWA deeplink vào tab Accounts
+
+### Đã thêm
+
+- Thêm route `/admin/deeplink` để ứng dụng khác có thể mở Admin PWA bằng HTTPS deeplink.
+- Khi nhận deeplink, UI tự mở tab **Accounts** và đưa dữ liệu URL vào textarea `accountServiceRawInput`.
+- Hỗ trợ query key `raw`, `data`, `payload`, `text`, `value`, `accountServiceRawInput` và các biến thể base64url như `raw_b64`.
+- Có toast thông báo nhận dữ liệu thành công.
+- Service worker đã đổi cache version sang `s3proxy-admin-v5` và không cache URL deeplink có query data.
+
+### Tài liệu
+
+Xem hướng dẫn triển khai và kiểm thử tại `docs/services/admin-deeplink.md`.

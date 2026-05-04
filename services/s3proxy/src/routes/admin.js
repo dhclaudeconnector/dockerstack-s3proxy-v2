@@ -426,8 +426,8 @@ function deriveDockerAccessFromEnv() {
 }
 
 const adminServiceWorker = `
-const CACHE_NAME = 's3proxy-admin-v4'
-const ADMIN_SHELL = ['/admin', '/admin/manifest.webmanifest', '/admin/icon']
+const CACHE_NAME = 's3proxy-admin-v5'
+const ADMIN_SHELL = ['/admin', '/admin/', '/admin/manifest.webmanifest', '/admin/icon']
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -450,6 +450,15 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url)
   if (!url.pathname.startsWith('/admin') || url.pathname.startsWith('/admin/api/')) return
 
+  const isDeepLinkRequest = url.pathname === '/admin/deeplink' || url.pathname === '/admin/deeplink/'
+  const hasUrlData = url.search.length > 0
+  if (isDeepLinkRequest || hasUrlData) {
+    event.respondWith(
+      fetch(request).catch(() => caches.match('/admin/').then((cached) => cached || caches.match('/admin'))),
+    )
+    return
+  }
+
   event.respondWith(
     fetch(request)
       .then((response) => {
@@ -457,7 +466,7 @@ self.addEventListener('fetch', (event) => {
         caches.open(CACHE_NAME).then((cache) => cache.put(request, clone)).catch(() => {})
         return response
       })
-      .catch(() => caches.match(request).then((cached) => cached || caches.match('/admin'))),
+      .catch(() => caches.match(request).then((cached) => cached || caches.match('/admin/'))),
   )
 })
 `.trim();
@@ -1111,7 +1120,27 @@ export default async function adminRoutes(fastify, _opts) {
       config: { skipAuth: true },
     },
     async (_request, reply) => {
-      reply.type("text/html; charset=utf-8").send(renderAdminHtml());
+      reply.header("Cache-Control", "no-store").type("text/html; charset=utf-8").send(renderAdminHtml());
+    },
+  );
+
+  fastify.get(
+    "/admin/",
+    {
+      config: { skipAuth: true },
+    },
+    async (_request, reply) => {
+      reply.header("Cache-Control", "no-store").type("text/html; charset=utf-8").send(renderAdminHtml());
+    },
+  );
+
+  fastify.get(
+    "/admin/deeplink",
+    {
+      config: { skipAuth: true },
+    },
+    async (_request, reply) => {
+      reply.header("Cache-Control", "no-store").type("text/html; charset=utf-8").send(renderAdminHtml());
     },
   );
 
@@ -1209,9 +1238,12 @@ export default async function adminRoutes(fastify, _opts) {
         name: branding.name,
         short_name: branding.shortName,
         description: branding.description,
-        start_url: "/admin",
+        start_url: "/admin/",
         scope: "/admin/",
         display: "standalone",
+        launch_handler: {
+          client_mode: "navigate-existing",
+        },
         background_color: branding.backgroundColor,
         theme_color: branding.themeColor,
         icons: getAdminManifestIconEntries(),
