@@ -619,6 +619,7 @@
     <div class="modal-actions">
       <button id="modalCancelBtn" type="button" class="secondary">Hủy</button>
       <button id="modalConfirmBtn" type="button">Đồng ý</button>
+      <button id="modalExtraBtn" type="button" class="warn" style="display:none"></button>
     </div>
   </div>
 </div>
@@ -677,6 +678,7 @@ const modalTitle = document.getElementById('modalTitle')
 const modalMessage = document.getElementById('modalMessage')
 const modalCancelBtn = document.getElementById('modalCancelBtn')
 const modalConfirmBtn = document.getElementById('modalConfirmBtn')
+const modalExtraBtn = document.getElementById('modalExtraBtn')
 let deferredInstallPrompt = null
 let modalResolver = null
 
@@ -829,6 +831,7 @@ async function openModal(options = {}) {
     message = '',
     confirmText = 'Đồng ý',
     cancelText = 'Hủy',
+    extraText = '',
     showCancel = true,
     tone = 'default',
   } = options
@@ -838,6 +841,12 @@ async function openModal(options = {}) {
   modalConfirmBtn.textContent = confirmText
   modalCancelBtn.textContent = cancelText
   modalCancelBtn.style.display = showCancel ? 'inline-block' : 'none'
+  if (extraText) {
+    modalExtraBtn.textContent = extraText
+    modalExtraBtn.style.display = 'inline-block'
+  } else {
+    modalExtraBtn.style.display = 'none'
+  }
   modalBox.classList.toggle('warn', tone === 'warn')
   modalBackdrop.classList.add('show')
   modalBackdrop.setAttribute('aria-hidden', 'false')
@@ -849,6 +858,7 @@ async function openModal(options = {}) {
 
 modalConfirmBtn.addEventListener('click', () => closeModal(true))
 modalCancelBtn.addEventListener('click', () => closeModal(false))
+modalExtraBtn.addEventListener('click', () => closeModal('extra'))
 modalBackdrop.addEventListener('click', (event) => {
   if (event.target === modalBackdrop) closeModal(false)
 })
@@ -1172,9 +1182,11 @@ async function runServiceParseFlow() {
     title: 'Áp dụng vào form',
     message: `Account: ${finalPreview.accountDraft.accountId || '-'}\nBucket: ${finalPreview.accountDraft.bucket || '-'}\nEmail: ${finalPreview.accountDraft.emailOwner || '-'}\n\nBạn có muốn điền dữ liệu này vào form account không?`,
     confirmText: 'Áp dụng',
+    extraText: 'Áp dụng và Lưu Account',
     cancelText: 'Hủy',
     showCancel: true,
   })
+
   if (confirmFillForm) {
     applyAccountDraft(finalPreview.accountDraft)
     logMessage('Đã autofill form từ service parser', {
@@ -1182,7 +1194,14 @@ async function runServiceParseFlow() {
       bucket: finalPreview.accountDraft.bucket,
       emailOwner: finalPreview.accountDraft.emailOwner,
     })
-    showToast('Đã điền dữ liệu parse vào form account.', 'success')
+
+    if (confirmFillForm === 'extra') {
+      showToast('Đã điền dữ liệu và đang tự động lưu...', 'info')
+      const submitBtn = document.getElementById('accountSubmitBtn')
+      if (submitBtn) submitBtn.click()
+    } else {
+      showToast('Đã điền dữ liệu parse vào form account.', 'success')
+    }
   }
 }
 
